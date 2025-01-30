@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #ffffff;
+            color: #000;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #000; /* White color for the heading for contrast */
+        }
+        input[type="file"] {
+            margin: 20px 0;
+            padding: 10px;
+            border: 2px solid #fff; /* White border to contrast with blue */
+            border-radius: 5px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        input[type="file"]:focus {
+            border-color: #007bff;
+        }
+        button {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #007bff;
+        }
+        #message {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .image-container {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .image-item {
+            margin: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        .image-item:hover {
+            transform: scale(1.05);
+        }
+        img {
+            max-width: 150px;
+            max-height: 150px;
+            object-fit: cover;
+        }
+        p {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #000;
+        }
+        .note {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload an Image</h1>
+    <input type="file" id="fileInput" accept="image/png, image/jpeg, image/gif">
+    <div>
+        <button id="uploadButton">Upload</button>
+        <button id="viewUploadsButton">View Uploads</button>
+    </div>
+    <div id="message"></div>
+
+    <div class="note">
+        <p>Please note that the image upload may take some time due to asynchronous processing. After uploading, wait a few moments before clicking "View Uploads".</p>
+    </div>
+
+    <div id="uploads" class="image-container"></div>
+
+    <script>
+        document.getElementById('uploadButton').addEventListener('click', function() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const messageDiv = document.getElementById('message');
+
+            if (!file) {
+                messageDiv.textContent = 'No file selected.';
+                messageDiv.style.color = 'red';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload_image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                messageDiv.textContent = data.message;
+                messageDiv.style.color = 'green';
+                // Clear the uploads section
+                document.getElementById('uploads').innerHTML = '';
+            })
+            .catch(error => {
+                messageDiv.textContent = 'Error: ' + error.message;
+                messageDiv.style.color = 'red';
+            });
+        });
+
+        document.getElementById('viewUploadsButton').addEventListener('click', function() {
+            fetch('/fetch_images')
+            .then(response => response.json())
+            .then(data => {
+                const uploadsDiv = document.getElementById('uploads');
+                uploadsDiv.innerHTML = ''; // Clear previous uploads
+
+                data.forEach(image => {
+                    const imageItem = document.createElement('div');
+                    imageItem.className = 'image-item';
+                    imageItem.innerHTML = `
+                        <img src="${image.image_path}" alt="Uploaded Image">
+                        <p>${image.description}</p>
+                    `;
+                    uploadsDiv.appendChild(imageItem);
+                });
+            })
+            .catch(error => {
+                const messageDiv = document.getElementById('message');
+                messageDiv.textContent = 'Error fetching uploads: ' + error.message;
+                messageDiv.style.color = 'red';
+            });
+        });
+    </script>
+</body>
+</html>
